@@ -2,30 +2,57 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import androidx.annotation.NonNull;
+import android.annotation.SuppressLint;
+import android.util.Size;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
-import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryAccelerationConstraint;
-import com.acmerobotics.roadrunner.trajectory.constraints.TrajectoryVelocityConstraint;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.SortOrder;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.opencv.ColorBlobLocatorProcessor;
+import org.firstinspires.ftc.vision.opencv.ColorRange;
+import org.firstinspires.ftc.vision.opencv.ImageRegion;
+import org.opencv.core.RotatedRect;
+
+import java.util.List;
 
 @Autonomous(name="TestAuto", group="Linear Opmode")
 public class TestAuto extends LinearOpMode {
     public static double ROBOT_WIDTH_INCHES = 16.2;
     public static double ROBOT_LENGTH_INCHES = 12;
 
+    private DcMotorEx armM;
+    private Servo leftClawS;
+    private Servo rightClawS;
+    private Servo wristS;
+    private Servo armS;
+
+    // private FirstVisionProcessor visionProcessor;
+    private VisionPortal visionPortal;
+    private ColorBlobLocatorProcessor colorLocator;
 
     @Override
     public void runOpMode() throws InterruptedException {
+        /*
+        initCamera(ColorRange.BLUE);
+        while (opModeIsActive() || opModeInInit()) {
+            telemetry.addData("preview on/off", "... Camera Stream\n");
+            getCameraBlobs();
+        }
+        */
+
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
         double START_POSITION_X = -1 - (ROBOT_WIDTH_INCHES / 2);
@@ -214,5 +241,60 @@ public class TestAuto extends LinearOpMode {
         telemetry.update();
     }
 */
+
+    private void initCamera(ColorRange targetColorRange) {
+        colorLocator = new ColorBlobLocatorProcessor.Builder()
+                .setTargetColorRange(targetColorRange)         // use a predefined color match
+                .setContourMode(ColorBlobLocatorProcessor.ContourMode.EXTERNAL_ONLY)    // exclude blobs inside blobs
+                .setRoi(ImageRegion.asUnityCenterCoordinates(-1, 0.8, 1.0, -0.8))  // search central 1/4 of camera view
+                .setDrawContours(true)                        // Show contours on the Stream Preview
+                .setBlurSize(5)                               // Smooth the transitions between different colors in image
+                .build();
+
+        visionPortal = new VisionPortal.Builder()
+                .addProcessor(colorLocator)
+                .setCameraResolution(new Size(320, 240))
+                .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+                .build();
+
+        // telemetry.setMsTransmissionInterval(50);   // Speed up telemetry updates, Just use for debugging.
+        telemetry.setDisplayFormat(Telemetry.DisplayFormat.MONOSPACE);
+    }
+
+    @SuppressLint("DefaultLocale")
+    public void getCameraBlobs() {
+
+        // Read the current list
+        List<ColorBlobLocatorProcessor.Blob> blobs = colorLocator.getBlobs();
+
+        ColorBlobLocatorProcessor.Util.filterByArea(1000, 20000, blobs);  // filter out very small blobs.
+        ColorBlobLocatorProcessor.Util.sortByArea(SortOrder.DESCENDING, blobs);
+
+        telemetry.addLine(" Area Density Aspect  Center");
+
+        // Display the size (area) and center location for each Blob.
+        for(ColorBlobLocatorProcessor.Blob b : blobs)
+        {
+            RotatedRect boxFit = b.getBoxFit();
+            telemetry.addLine(String.format("%5d  %4.2f   %5.2f  (%3d,%3d)",
+                    b.getContourArea(), b.getDensity(), b.getAspectRatio(), (int) boxFit.center.x, (int) boxFit.center.y));
+
+            // raw initial numbers
+            // grabber location:
+            // area 3600, density 0.9, aspect ratio 1.7, center x y (185,147)
+
+            // sample ~3 inches in front:
+            // area 3600, density 0.9, AR 2., center (160, 118)
+
+            // sample ~3 inches in front, 2 inches right
+            // area 3340, density 0.95, AR 3, center (248, 104)
+
+            // sample ~3 inches in front, 2 inches left
+            // area 4000, density 0.9, AR 1.44, center (91, 122)
+        }
+
+        telemetry.update();
+        sleep(500);
+    }
 }
 
