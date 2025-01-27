@@ -9,8 +9,6 @@ import com.acmerobotics.roadrunner.drive.MecanumDrive;
 import com.acmerobotics.roadrunner.followers.HolonomicPIDVAFollower;
 import com.acmerobotics.roadrunner.followers.TrajectoryFollower;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.kinematics.Kinematics;
-import com.acmerobotics.roadrunner.kinematics.MecanumKinematics;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.acmerobotics.roadrunner.trajectory.TrajectoryBuilder;
 import com.acmerobotics.roadrunner.trajectory.constraints.AngularVelocityConstraint;
@@ -30,7 +28,6 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.internal.system.Misc;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuilder;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner;
@@ -52,18 +49,16 @@ import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kA;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kStatic;
 import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kV;
 
-import android.util.Log;
-
 /*
  * Simple mecanum drive hardware implementation for REV hardware.
  */
 @Config
 public class SampleMecanumDrive extends MecanumDrive {
     public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(15, 0, 1);
-    public static PIDCoefficients HEADING_PID = new PIDCoefficients(15, 0, 1);
+    public static PIDCoefficients HEADING_PID = new PIDCoefficients(35, 0, 1);
 
     public static double LATERAL_MULTIPLIER = 1.2; // via strafe test
-    // measured 38, reported 43
+
 
     public static double VX_WEIGHT = 1;
     public static double VY_WEIGHT = 1;
@@ -91,7 +86,7 @@ public class SampleMecanumDrive extends MecanumDrive {
         follower = new HolonomicPIDVAFollower(TRANSLATIONAL_PID, TRANSLATIONAL_PID, HEADING_PID,
                 new Pose2d(0.5, 0.5, Math.toRadians(2.0)), 0.5);
 
-        // LynxModuleUtil.ensureMinimumFirmwareVersion(hardwareMap);
+        LynxModuleUtil.ensureMinimumFirmwareVersion(hardwareMap);
 
         batteryVoltageSensor = hardwareMap.voltageSensor.iterator().next();
 
@@ -100,10 +95,13 @@ public class SampleMecanumDrive extends MecanumDrive {
         }
 
         // TODO: adjust the names of the following hardware devices to match your configuration
+        /*
         imu = hardwareMap.get(IMU.class, "imu");
         IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
                 DriveConstants.LOGO_FACING_DIR, DriveConstants.USB_FACING_DIR));
         imu.initialize(parameters);
+
+         */
 
         rightFront = hardwareMap.get(DcMotorEx.class, "frontRightM");
         rightRear = hardwareMap.get(DcMotorEx.class, "backRightM");
@@ -131,14 +129,14 @@ public class SampleMecanumDrive extends MecanumDrive {
         // TODO: reverse any motors using DcMotor.setDirection()
         leftFront.setDirection(DcMotor.Direction.REVERSE);
         rightFront.setDirection(DcMotor.Direction.FORWARD);
-        leftRear.setDirection(DcMotor.Direction.REVERSE);
+        leftRear.setDirection(DcMotor.Direction.REVERSE );
         rightRear.setDirection(DcMotor.Direction.FORWARD);
+
         List<Integer> lastTrackingEncPositions = new ArrayList<>();
         List<Integer> lastTrackingEncVels = new ArrayList<>();
 
         // TODO: if desired, use setLocalizer() to change the localization method
-        // two wheeled Odometry pods
-        setLocalizer(new TwoWheelTrackingLocalizer(hardwareMap, this, lastTrackingEncPositions, lastTrackingEncVels));
+        setLocalizer(new StandardTrackingWheelLocalizer(hardwareMap, lastTrackingEncPositions, lastTrackingEncVels));
 
         trajectorySequenceRunner = new TrajectorySequenceRunner(
                 follower, HEADING_PID, batteryVoltageSensor,
@@ -266,6 +264,7 @@ public class SampleMecanumDrive extends MecanumDrive {
     @NonNull
     @Override
     public List<Double> getWheelPositions() {
+
         lastEncPositions.clear();
 
         List<Double> wheelPositions = new ArrayList<>();
@@ -300,12 +299,14 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     @Override
     public double getRawExternalHeading() {
-        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        return 0;
+        //return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
 
     @Override
     public Double getExternalHeadingVelocity() {
-        return (double) imu.getRobotAngularVelocity(AngleUnit.RADIANS).xRotationRate;
+        return 0.0;
+        //return (double) imu.getRobotAngularVelocity(AngleUnit.RADIANS).xRotationRate;
     }
 
     public static TrajectoryVelocityConstraint getVelocityConstraint(double maxVel, double maxAngularVel, double trackWidth) {
@@ -317,20 +318,5 @@ public class SampleMecanumDrive extends MecanumDrive {
 
     public static TrajectoryAccelerationConstraint getAccelerationConstraint(double maxAccel) {
         return new ProfileAccelerationConstraint(maxAccel);
-    }
-
-
-     public void setDriveSignal(DriveSignal driveSignal) {
-         List<Double> velocities = MecanumKinematics.robotToWheelVelocities(
-                 driveSignal.getVel(),
-                 TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER
-         );
-        List<Double> accelerations = MecanumKinematics.robotToWheelAccelerations(
-                driveSignal.getAccel(),
-                TRACK_WIDTH, TRACK_WIDTH, LATERAL_MULTIPLIER
-        );
-        List<Double> powers = Kinematics.calculateMotorFeedforward(velocities, accelerations, kV, kA, kStatic);
-        Log.d("drive", Misc.formatInvariant("motor: %.2f %.2f %.2f %.2f", powers.get(0), powers.get(1), powers.get(2), powers.get(3)));
-        setMotorPowers(powers.get(0), powers.get(1), powers.get(2), powers.get(3));
     }
 }

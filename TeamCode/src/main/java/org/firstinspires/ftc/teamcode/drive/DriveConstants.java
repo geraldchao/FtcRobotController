@@ -47,11 +47,9 @@ public class DriveConstants {
      */
     public static double WHEEL_RADIUS =  1.8898; // in
     // output (wheel) speed / input (motor) speed
-    public static double GEAR_RATIO = 1; // manually tuned
-    // measured = 67, finalX = 59.69, ratio 1.122, too short
+    public static double GEAR_RATIO = 0.95; // manually tuned
 
-    public static double TRACK_WIDTH = 11; // manually tuned, 20.75 via Trackwidth tuner
-    // 14; theoretical // in
+    public static double TRACK_WIDTH = 15;  // 14; theoretical // in
 
 
     /*
@@ -61,7 +59,7 @@ public class DriveConstants {
      * empirically tuned.
      */
     // acceleration
-    public static double kA = 0.0074;
+    public static double kA = 0.0085;
     // 0.009 from strafeTest max v 30 a 30
     // 0.006 from straightTest max v 30 a 30
     // 0.0081 from manual feedfoward max v 12 a 12
@@ -73,7 +71,7 @@ public class DriveConstants {
 
 
     // reduce kV if robot tend to overshoot
-    public static double kV = 0.0069; //  1.0 / rpmToVelocity(MAX_RPM);
+    public static double kV = 0.0085; //  1.0 / rpmToVelocity(MAX_RPM);
     // 0.01 from strafeTest
     // 0.006 from straightTest
     // 0.01  from manual feedfoward max v 12 a 12
@@ -85,26 +83,18 @@ public class DriveConstants {
      * small and gradually increase them later after everything is working. All distance units are
      * inches.
      */
-    public static double MAX_VEL = 30; // 24 good accuracy 12 during tuning
-    public static double MAX_ACCEL = 30; // 12 during tuning
-    public static double MAX_ANG_VEL = Math.toRadians(180); //   Math.toRadians(400); // max recommended via autoTune // Math.toRadians(90);
-    public static double MAX_ANG_ACCEL = Math.toRadians(180); // smaller the less turn error // Math.toRadians(60);
+    public static double MAX_VEL = 45; // 24 good accuracy 12 during tuning
+    public static double MAX_ACCEL = 45; // 12 during tuning
+    public static double MAX_ANG_VEL = 3.14; //   Math.toRadians(400); // max recommended via autoTune // Math.toRadians(90);
+    public static double MAX_ANG_ACCEL = 3.14; // smaller the less turn error // Math.toRadians(60);
 
     /*
      * Adjust the orientations here to match your robot. See the FTC SDK documentation for details.
      */
-    /* control hub */
     public static RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIR =
             RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
     public static RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIR =
             RevHubOrientationOnRobot.UsbFacingDirection.UP;
-
-    /* expansion hub
-    public static RevHubOrientationOnRobot.LogoFacingDirection LOGO_FACING_DIR =
-            RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
-    public static RevHubOrientationOnRobot.UsbFacingDirection USB_FACING_DIR =
-            RevHubOrientationOnRobot.UsbFacingDirection.DOWN;
-     */
 
 
     public static double encoderTicksToInches(double ticks) {
